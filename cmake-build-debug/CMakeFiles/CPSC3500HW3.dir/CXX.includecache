@@ -1,0 +1,18 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+C:/Users/Nolan/CLionProjects/CPSC3500HW3/staplemax.cpp
+iostream
+-
+map
+-
+pthread.h
+-
+fstream
+-
+

@@ -14,18 +14,9 @@ const string TESTPATHWIN = "C:\\Users\\Nolan\\CLionProjects\\CPSC3500HW3\\sales"
 const string TESTPATHMAC = "/Users/smithn10/Documents/CPSC3500-HW3/CPSC3500HW3/sales";
 
 
-
-
-
-struct products {
-    int pen;
-    int paper;
-    int toner;
-    int laptops;
+struct prodSum{
     int sum;
 };
-
-
 map<string, int> prodMap;
 pthread_mutex_t mutlock;
 
@@ -35,7 +26,7 @@ void *processLine(void *threadNumber) {
     ifstream infile;
     string fileName, prod;
 
-    int sum =0;
+    int sum = 0;
 
     long fileNumber = (long) threadNumber;
     //development filepath
@@ -50,34 +41,38 @@ void *processLine(void *threadNumber) {
     }
 
     while (infile >> prod) {
-        if(prod=="pen"){
-            prodMap.at(prod)-=1;
-            if(prodMap.at(prod)==0){
-                prodMap.at(prod)=PENS;
+        if (prod == "pen") {
+            prodMap.at(prod) -= 1;
+            if (prodMap.at(prod) == 0) {
+                prodMap.at(prod) = PENS;
             }
-        }else if(prod=="paper"){
-            prodMap.at(prod)-=1;
-            if(prodMap.at(prod)==0){
-                prodMap.at(prod)=PAPER;
+        } else if (prod == "paper") {
+            prodMap.at(prod) -= 1;
+            if (prodMap.at(prod) == 0) {
+                prodMap.at(prod) = PAPER;
             }
-        }else if(prod=="toner"){
-            prodMap.at(prod)-=1;
-            if(prodMap.at(prod)==0){
-                prodMap.at(prod)=TONER;
+        } else if (prod == "toner") {
+            prodMap.at(prod) -= 1;
+            if (prodMap.at(prod) == 0) {
+                prodMap.at(prod) = TONER;
             }
-        }else if(prod=="laptop"){
-            prodMap.at(prod)-=1;
-            if(prodMap.at(prod)==0){
-                prodMap.at(prod)=LAPTOPS;
+        } else if (prod == "laptop") {
+            prodMap.at(prod) -= 1;
+            if (prodMap.at(prod) == 0) {
+                prodMap.at(prod) = LAPTOPS;
             }
         }
         sum++;
     }
+    struct prodSum* threadProdSum = NULL;
+    threadProdSum= new prodSum;
+
+    threadProdSum->sum+=sum;
     infile.close();
-    prodMap.at("sum")+=sum;
+    prodMap.at("sum") += sum;
     pthread_mutex_unlock(&mutlock);
 
-    return NULL;
+    return (void* ) threadProdSum;
 
 }
 
@@ -89,31 +84,37 @@ int main(void) {
     prodMap["paper"] = 100;
     prodMap["toner"] = 35;
     prodMap["laptop"] = 20;
-    prodMap["sum"]=0;
+    prodMap["sum"] = 0;
 
+    struct prodSum* prodSum1 = NULL;
+    prodSum1= new struct prodSum;
 
-    if (pthread_mutex_init(&mutlock, NULL) != 0)
-    {
-        cout<< "mutex init failed" << endl;
+    prodSum1->sum=0;
+    if (pthread_mutex_init(&mutlock, NULL) != 0) {
+        cout << "mutex init failed" << endl;
         return 1;
     }
 
     pthread_t threadID[NUM_THREADS];
 
     for (long i = 0; i < NUM_THREADS; i++) {
-        if (pthread_create(&threadID[i], NULL, &processLine, (void *)i) != SUCCESS) {
+        if (pthread_create(&threadID[i], NULL, &processLine, (void *) i) != SUCCESS) {
             cout << "ERROR: failed to create thread " << i << " " << endl;
             return 0;
         }
     }
 
-
+    struct prodSum *tempSum;
+    struct prodSum **getTempSum = &tempSum;
 
     for (int i = 0; i < NUM_THREADS; i++) {
-        if (pthread_join(threadID[i], NULL) != SUCCESS) {
+        if (pthread_join(threadID[i], (void**)getTempSum) != SUCCESS) {
             cout << "Error: failed to join thread " << i << endl;
             return 0;
         }
+        pthread_mutex_lock(&mutlock);
+        prodSum1->sum += tempSum->sum;
+        pthread_mutex_unlock(&mutlock);
 
     }
 
@@ -121,7 +122,7 @@ int main(void) {
     cout << "Paper: " << prodMap.at("paper") << endl;
     cout << "Toner: " << prodMap.at("toner") << endl;
     cout << "Laptops: " << prodMap.at("laptop") << endl;
-    cout << "Total sales: " << prodMap.at("sum") << endl;
+    cout << "Total sales: " << prodSum1->sum << endl;
     pthread_mutex_destroy(&mutlock);
 
 

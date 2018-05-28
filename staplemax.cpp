@@ -6,36 +6,40 @@
 
 using namespace std;
 
-const int PENS = 200,PAPER = 100,TONER=35,LAPTOPS=20;
+const int PENS = 200, PAPER = 100, TONER = 35, LAPTOPS = 20;
 const int SUCCESS = 0;
 const int NUM_THREADS = 20;
 const string FILEPATH = "/home/fac/lillethd/cpsc3500/projects/p3a";
-const string TESTPATH = "C:\\Users\\Nolan\\CLionProjects\\CPSC3500HW3\\sales";
+const string TESTPATHWIN = "C:\\Users\\Nolan\\CLionProjects\\CPSC3500HW3\\sales";
+const string TESTPATHMAC = "/Users/smithn10/Documents/CPSC3500-HW3/CPSC3500HW3/sales";
+
+
+
+
 
 struct products {
     int pen;
     int paper;
     int toner;
     int laptops;
+    int sum;
 };
 
 
 map<string, int> prodMap;
-
+pthread_mutex_t mutlock;
 
 void *processLine(void *threadNumber) {
+    pthread_mutex_lock(&mutlock);
+
     ifstream infile;
     string fileName, prod;
 
-    int penCount = 0;
-    int paperCount = 0;
-    int tonerCount = 0;
-    int laptopCount = 0;
+    int sum =0;
 
     long fileNumber = (long) threadNumber;
     //development filepath
-    cout << TESTPATH + to_string(fileNumber + 1) + ".txt"<< endl;
-    fileName = TESTPATH + to_string(fileNumber + 1) + ".txt";
+    fileName = TESTPATHMAC + to_string(fileNumber + 1) + ".txt";
     //deployment filepath
     //fileName = FILEPATH + to_string(fileNumber + 1) + ".txt";
     infile.open(fileName);
@@ -47,80 +51,79 @@ void *processLine(void *threadNumber) {
 
     while (infile >> prod) {
         if(prod=="pen"){
-            penCount++;
+            prodMap.at(prod)-=1;
+            if(prodMap.at(prod)==0){
+                prodMap.at(prod)=PENS;
+            }
+        }else if(prod=="paper"){
+            prodMap.at(prod)-=1;
+            if(prodMap.at(prod)==0){
+                prodMap.at(prod)=PAPER;
+            }
+        }else if(prod=="toner"){
+            prodMap.at(prod)-=1;
+            if(prodMap.at(prod)==0){
+                prodMap.at(prod)=TONER;
+            }
+        }else if(prod=="laptop"){
+            prodMap.at(prod)-=1;
+            if(prodMap.at(prod)==0){
+                prodMap.at(prod)=LAPTOPS;
+            }
         }
-        else if(prod=="laptop"){
-            laptopCount++;
-        }
-        else if(prod=="toner"){
-            tonerCount++;
-        }
-        else if(prod=="paper"){
-            paperCount++;
-        }
+        sum++;
     }
     infile.close();
+    prodMap.at("sum")+=sum;
+    pthread_mutex_unlock(&mutlock);
 
-    struct products *retProd = NULL;
-    retProd = new products;
-    retProd->pen -= penCount;
-    retProd->paper -= paperCount;
-    retProd->toner -= tonerCount;
-    retProd->laptops -= laptopCount;
-
-    return (void*) retProd;
+    return NULL;
 
 }
 
 
-
-
 int main(void) {
 
-    struct products *p = NULL;
-    p = new struct products;
 
     prodMap["pen"] = 200;
     prodMap["paper"] = 100;
     prodMap["toner"] = 35;
     prodMap["laptop"] = 20;
-    p->pen = 200;
-    p->paper = 100;
-    p->toner = 35;
-    p->laptops = 20;
+    prodMap["sum"]=0;
+
+
+    if (pthread_mutex_init(&mutlock, NULL) != 0)
+    {
+        cout<< "mutex init failed" << endl;
+        return 1;
+    }
 
     pthread_t threadID[NUM_THREADS];
 
     for (long i = 0; i < NUM_THREADS; i++) {
-        if (pthread_create(&threadID[i], NULL, processLine, (void *) i) != SUCCESS) {
+        if (pthread_create(&threadID[i], NULL, &processLine, (void *)i) != SUCCESS) {
             cout << "ERROR: failed to create thread " << i << " " << endl;
             return 0;
         }
     }
 
-    struct products *tempP;
-    struct products **getTempP = &tempP;
+
 
     for (int i = 0; i < NUM_THREADS; i++) {
-        if (pthread_join(threadID[i], (void **) getTempP) != SUCCESS) {
+        if (pthread_join(threadID[i], NULL) != SUCCESS) {
             cout << "Error: failed to join thread " << i << endl;
             return 0;
         }
 
-        p->pen = tempP->pen;
-        p->paper = tempP->paper;
-        p->toner = tempP->toner;
-        p->laptops = tempP->laptops;
     }
 
-    cout << "Pens: " << p->pen << endl;
-    cout << "Paper: " << p->paper << endl;
-    cout << "Toner: " << p->toner << endl;
-    cout << "Laptops: " << p->laptops << endl;
+    cout << "Pens: " << prodMap.at("pen") << endl;
+    cout << "Paper: " << prodMap.at("paper") << endl;
+    cout << "Toner: " << prodMap.at("toner") << endl;
+    cout << "Laptops: " << prodMap.at("laptop") << endl;
+    cout << "Total sales: " << prodMap.at("sum") << endl;
+    pthread_mutex_destroy(&mutlock);
 
-    delete p;
-    delete tempP;
 
-    std::cout << "Hello, World!" << std::endl;
     return 0;
 }

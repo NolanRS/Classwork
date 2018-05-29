@@ -115,7 +115,6 @@ int main(void) {
         pthread_mutex_lock(&mutlock);
         prodSum1->sum += tempSum->sum;
         pthread_mutex_unlock(&mutlock);
-
     }
 
     cout << "Pens: " << prodMap.at("pen") << endl;
